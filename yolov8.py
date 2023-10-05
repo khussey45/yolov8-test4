@@ -1,21 +1,28 @@
-import torch
-import numpy as np
-import cv2
-from time import time
-from ultralytics import YOLO
+# Kieren Hussey
+# Starter code came from https://www.youtube.com/watch?v=O9Jbdy5xOow&list=PLJA8jVJaGxqlscYUxiXm0mRBHKNFDPyJE&index=1
+
+# Using YOLOv8 to detect people in a video feed and draw bounding boxes around them. Using the Pytorch model from ultralytics https://docs.ultralytics.com/tasks/detect/#models 
+
+
+
+import torch # deep learning framework
+import numpy as np # numerical computing
+import cv2 # computer vision
+from time import time # time the FPS
+from ultralytics import YOLO # YOLOv8 model
 
 
 from supervision.draw.color import ColorPalette, Color
-# from supervision import Detections, BoxAnnotator 
 from supervision import Detections, BoxAnnotator 
 
 
 class ObjectDetection: 
 
-  def __init__(self, capture_index):
+  def __init__(self, capture_index): # Constructor for the ObjectDetection class and initializes the object
 
-    self.capture_index = capture_index
+    self.capture_index = capture_index # Stores the camera index or video file path to be used for capturing frame
 
+    # Checking if there is a gpu available and if its cuda(nvidia) compatible
     self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print("Using Device: ", self.device)
     if torch.cuda.is_available():
@@ -23,32 +30,33 @@ class ObjectDetection:
 
 
 
-    self.model = self.load_model()
+    self.model = self.load_model() # Loads the YOLO model
 
-    self.CLASS_NAMES_DICT = self.model.model.names
+    self.CLASS_NAMES_DICT = self.model.model.names # Stores the class names from the YOLO model
     
+    # This draws a green box around detected object
     green_color = Color(0, 255, 0)
     self.box_annotator = BoxAnnotator(color=green_color, thickness=3, text_scale=1.5)
 
 
+  # Load_model method created 
+  def load_model(self): 
 
+    model = YOLO("yolov8m.pt") # Loads the pytorch model
+    model.fuse() # Fuses for better performance 
 
-
-
-
-  def load_model(self):
-
-    model = YOLO("yolov8m.pt")
-    model.fuse()
-
-    return model
+    return model 
   
+
+  # Predict method created
   def predict(self, frame):
 
-    results = self.model(frame)
+    results = self.model(frame) # Feeds the frame to the YOLO model
 
     return results
   
+
+  # Bounded Boxes method created
   def plot_bboxes(self, results, frame):
 
     xyxys = []
@@ -81,17 +89,20 @@ class ObjectDetection:
     # Annotate and display frame
     frame = self.box_annotator.annotate(frame, detections=detections, labels=self.labels)
 
-
-
     return frame
   
+
+
+  # This method allows the object to be called as a function
   def __call__(self):
 
-    cap = cv2.VideoCapture(self.capture_index)
+    cap = cv2.VideoCapture(self.capture_index) # Open video capture using OpenCV
     assert cap.isOpened()
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
+
+    # Inside this while loop its getting the time in frames per second
     while True:
 
       start_time = time()
